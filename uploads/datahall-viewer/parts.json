@@ -1,0 +1,128 @@
+[
+ {
+  "key": "FOUNDATION",
+  "label": "Piled Foundation",
+  "category": "substructure",
+  "verts": 8520
+ },
+ {
+  "key": "PLINTH",
+  "label": "Concrete Plinth",
+  "category": "substructure",
+  "verts": 16
+ },
+ {
+  "key": "LEVEL_1",
+  "label": "Level 1 Structure",
+  "category": "structure",
+  "verts": 488
+ },
+ {
+  "key": "LEVEL_2",
+  "label": "Level 2 Structure",
+  "category": "structure",
+  "verts": 488
+ },
+ {
+  "key": "LEVEL_3",
+  "label": "Level 3 Structure",
+  "category": "structure",
+  "verts": 488
+ },
+ {
+  "key": "LEVEL_4",
+  "label": "Level 4 Structure",
+  "category": "structure",
+  "verts": 488
+ },
+ {
+  "key": "CLADDING_N",
+  "label": "North Facade",
+  "category": "envelope",
+  "verts": 1344
+ },
+ {
+  "key": "CLADDING_S",
+  "label": "South Facade",
+  "category": "envelope",
+  "verts": 1344
+ },
+ {
+  "key": "CLADDING_E",
+  "label": "East Facade",
+  "category": "envelope",
+  "verts": 576
+ },
+ {
+  "key": "CLADDING_W",
+  "label": "West Facade",
+  "category": "envelope",
+  "verts": 576
+ },
+ {
+  "key": "PARAPET",
+  "label": "Roof Deck & Parapet",
+  "category": "envelope",
+  "verts": 72
+ },
+ {
+  "key": "GLAZING",
+  "label": "Curtain Wall Glazing",
+  "category": "finish",
+  "verts": 496
+ },
+ {
+  "key": "LOUVRE_SCREEN",
+  "label": "Arched Louvre Screen",
+  "category": "envelope",
+  "verts": 3080
+ },
+ {
+  "key": "DRY_COOLERS",
+  "label": "Dry Cooler Array",
+  "category": "mep",
+  "verts": 30912
+ },
+ {
+  "key": "PLANT_MODULES",
+  "label": "Packaged Plant Modules",
+  "category": "mep",
+  "verts": 6304
+ },
+ {
+  "key": "PLANT_STEEL",
+  "label": "Plant Support Steelwork",
+  "category": "mep",
+  "verts": 1840
+ },
+ {
+  "key": "ROOF_PIPEWORK",
+  "label": "Chilled Water Pipework",
+  "category": "mep",
+  "verts": 8912
+ },
+ {
+  "key": "PUMP_SKIDS",
+  "label": "Pump Skids",
+  "category": "mep",
+  "verts": 288
+ },
+ {
+  "key": "ROOF_ACCESS",
+  "label": "Roof Access Walkways",
+  "category": "mep",
+  "verts": 880
+ },
+ {
+  "key": "ROOF_ANCILLARY",
+  "label": "Kiosks & Split Condensers",
+  "category": "mep",
+  "verts": 5024
+ },
+ {
+  "key": "SIGNAGE",
+  "label": "Facade Signage",
+  "category": "finish",
+  "verts": 4
+ }
+]
