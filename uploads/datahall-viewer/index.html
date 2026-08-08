@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Interactive Data Hall 3D Viewer | Longmotive</title>
+<meta name="description" content="Explore an interactive Longmotive data hall model with selectable M&E systems for a mission-critical facility in Johor.">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --ink:#08243F; --ink2:#0F52A0; --cy:#00B0F0; --mute:#5B6B7E;
+    --line:rgba(8,36,63,.12); --panel:rgba(255,255,255,.84);
+  }
+  body{background:#fff;color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Inter,sans-serif;-webkit-font-smoothing:antialiased}
+
+  .track{position:relative;height:460vh}
+  .stage{position:sticky;top:0;height:100vh;overflow:hidden;
+    background:radial-gradient(120% 90% at 50% 4%,#fff 0%,#F4F6F8 60%,#EAEEF2 100%)}
+  canvas#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y}
+
+  nav{position:absolute;top:0;left:0;right:0;z-index:6;display:flex;justify-content:space-between;
+    align-items:center;padding:24px clamp(18px,4vw,56px);pointer-events:none}
+  nav .logo{font-weight:800;letter-spacing:.11em;font-size:14px}
+  nav .links{display:flex;gap:26px}
+  nav a{color:var(--mute);font-size:11px;letter-spacing:.15em;text-transform:uppercase;text-decoration:none}
+
+  .copy{position:absolute;left:0;top:0;bottom:0;z-index:4;display:flex;flex-direction:column;
+    justify-content:center;padding:0 clamp(20px,4vw,56px);max-width:31ch;pointer-events:none;
+    transition:opacity .5s}
+  .eyebrow{display:inline-flex;align-items:center;gap:10px;color:var(--cy);font-size:11px;font-weight:600;
+    letter-spacing:.2em;text-transform:uppercase;margin-bottom:16px}
+  .eyebrow i{width:28px;height:2px;background:currentColor}
+  h1{font-size:clamp(1.9rem,4.1vw,3.3rem);line-height:1.05;font-weight:800;letter-spacing:-.022em}
+  h1 em{font-style:normal;color:var(--ink2)}
+  .sub{color:#4A5A6D;font-size:clamp(.88rem,1.3vw,1.02rem);line-height:1.6;margin-top:16px}
+
+  /* ---- hotspots ---- */
+  .spots{position:absolute;inset:0;z-index:5;pointer-events:none}
+  .spot{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;cursor:pointer;
+    width:26px;height:26px;display:grid;place-items:center;opacity:0;transition:opacity .3s}
+  .spot.vis{opacity:1}
+  .spot::before{content:"";position:absolute;inset:0;border-radius:50%;
+    border:1px solid rgba(0,176,240,.55);animation:pulse 2.4s ease-out infinite}
+  .spot b{width:8px;height:8px;border-radius:50%;background:var(--cy);
+    box-shadow:0 0 0 3px rgba(255,255,255,.92),0 1px 6px rgba(8,36,63,.3)}
+  .spot.on b{background:var(--ink2);width:11px;height:11px}
+  @keyframes pulse{0%{transform:scale(.45);opacity:.9}100%{transform:scale(1.15);opacity:0}}
+  .spot .lab{position:absolute;left:20px;white-space:nowrap;font-size:10.5px;font-weight:600;
+    letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);
+    background:rgba(255,255,255,.88);padding:3px 8px;border-radius:4px;opacity:0;transition:opacity .2s}
+  .spot:hover .lab,.spot.on .lab{opacity:1}
+
+  /* ---- info panel ---- */
+  .info{position:absolute;right:clamp(16px,3vw,40px);top:50%;transform:translateY(-50%) translateX(14px);
+    z-index:7;width:min(342px,86vw);background:var(--panel);backdrop-filter:blur(14px);
+    border:1px solid var(--line);border-radius:14px;padding:22px 22px 20px;
+    box-shadow:0 18px 50px -18px rgba(8,36,63,.32);opacity:0;pointer-events:none;
+    transition:opacity .3s,transform .3s}
+  .info.open{opacity:1;pointer-events:auto;transform:translateY(-50%) translateX(0)}
+  .info .cat{font-size:10px;font-weight:700;letter-spacing:.19em;text-transform:uppercase;color:var(--cy)}
+  .info h3{margin:8px 0 0;font-size:1.22rem;font-weight:800;letter-spacing:-.015em;line-height:1.2}
+  .info p{margin-top:11px;font-size:13.2px;line-height:1.62;color:#43536A}
+  .info dl{margin-top:16px;border-top:1px solid var(--line);display:grid;grid-template-columns:auto 1fr}
+  .info dt,.info dd{padding:8px 0;border-bottom:1px solid var(--line);font-size:12px}
+  .info dt{color:var(--mute);letter-spacing:.05em;padding-right:16px}
+  .info dd{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+  .info .x{position:absolute;top:12px;right:12px;width:26px;height:26px;border:0;border-radius:50%;
+    background:rgba(8,36,63,.06);color:var(--ink);cursor:pointer;font-size:15px;line-height:1}
+  .info .x:hover{background:rgba(8,36,63,.12)}
+
+  /* ---- bottom hud ---- */
+  .hud{position:absolute;left:0;right:0;bottom:0;z-index:6;padding:0 clamp(20px,4vw,56px) 26px}
+  .phases{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap}
+  .ph{flex:1;min-width:96px;border-top:2px solid var(--line);padding-top:9px;transition:border-color .35s}
+  .ph span{display:block;transition:opacity .35s,color .35s;opacity:.34;color:var(--ink)}
+  .ph .n{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.16em}
+  .ph .t{margin-top:2px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+  .ph.on{border-top-color:var(--cy)}
+  .ph.on span{opacity:1;color:var(--ink2)}
+  .bar{height:2px;background:var(--line);border-radius:2px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--ink2),var(--cy))}
+
+  .tools{position:absolute;left:clamp(20px,4vw,56px);bottom:98px;z-index:6;display:flex;gap:8px;flex-wrap:wrap}
+  .tools button{border:1px solid var(--line);background:rgba(255,255,255,.8);backdrop-filter:blur(8px);
+    color:var(--ink);font-size:10.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;
+    padding:9px 14px;border-radius:999px;cursor:pointer}
+  .tools button.on{background:var(--ink2);border-color:var(--ink2);color:#fff}
+
+  /* ---- top-right view bar: named camera presets + system colouring ---- */
+  .viewbar{position:absolute;top:18px;right:clamp(16px,3vw,40px);z-index:8;
+    display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+  .viewbar .row{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .vb{border:1px solid var(--line);background:rgba(255,255,255,.86);backdrop-filter:blur(8px);
+    color:var(--ink);font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.12em;
+    text-transform:uppercase;padding:8px 12px;border-radius:3px;cursor:pointer;white-space:nowrap}
+  .vb:hover{background:#fff;border-color:rgba(8,36,63,.28)}
+  .vb.on{background:var(--ink2);border-color:var(--ink2);color:#fff}
+
+  /* ---- left filter drawer ---- */
+  .filters{position:absolute;top:18px;left:clamp(16px,3vw,40px);z-index:8;
+    font-family:ui-monospace,monospace}
+  .filters>summary{list-style:none;border:1px solid var(--line);
+    background:rgba(255,255,255,.86);backdrop-filter:blur(8px);color:var(--ink);
+    font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:8px 12px;
+    border-radius:3px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+  .filters>summary::-webkit-details-marker{display:none}
+  .filters>summary i{font-style:normal;transition:transform .2s}
+  .filters[open]>summary i{transform:rotate(90deg)}
+  .fbody{margin-top:8px;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);
+    border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:196px;
+    box-shadow:0 14px 40px -18px rgba(8,36,63,.28)}
+  .fbody label{display:flex;align-items:center;gap:9px;padding:5px 0;font-size:11px;
+    letter-spacing:.06em;color:var(--ink);cursor:pointer}
+  .fbody input{accent-color:var(--ink2);width:13px;height:13px}
+  .fbody .sw{width:9px;height:9px;border-radius:2px;flex:0 0 auto}
+
+  .hint{position:absolute;right:clamp(16px,3vw,40px);bottom:26px;z-index:6;
+    font-family:ui-monospace,monospace;font-size:10px;line-height:1.9;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--mute);text-align:right;opacity:0;transition:opacity .4s}
+
+  .boot{position:absolute;inset:0;z-index:9;display:grid;place-items:center;background:#fff;
+    font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--mute);
+    text-align:center;padding:20px;transition:opacity .5s}
+  .boot.gone{opacity:0;pointer-events:none}
+  .after{background:#08243F;color:#9FB4C9;padding:120px clamp(20px,4vw,56px);font-size:14px}
+</style>
+</head>
+<body>
+<div class="track" id="track">
+  <div class="stage">
+    <canvas id="gl"></canvas>
+    <div class="spots" id="spots"></div>
+
+    <nav>
+      <span class="logo">LONGMOTIVE</span>
+      <span class="links"><a href="#">About</a><a href="#">Services</a><a href="#">Projects</a><a href="#">Contact</a></span>
+    </nav>
+
+    <div class="copy" id="copy">
+      <span class="eyebrow"><i></i>Data Centre M&amp;E</span>
+      <h1>Built from the <em>ground up</em>.</h1>
+      <p class="sub">Substructure to commissioning — every layer of a hyperscale data hall,
+        delivered by one accountable contractor. Scroll to assemble, then click any layer.</p>
+    </div>
+
+    <details class="filters" id="filters">
+      <summary>Filters <i>&#10095;</i></summary>
+      <div class="fbody" id="fbody"></div>
+    </details>
+
+    <div class="viewbar">
+      <div class="row" id="views"></div>
+      <div class="row">
+        <button class="vb" id="bSystem">Colour by system</button>
+        <button class="vb" id="bAll">Show all</button>
+      </div>
+    </div>
+
+    <div class="tools">
+      <button id="bExp">Explode</button>
+      <button id="bOrbit">Auto-orbit</button>
+      <button id="bReset">Reset view</button>
+    </div>
+    <div class="hint" id="hint">Drag to orbit · scroll to zoom<br>Hover a unit · click to inspect</div>
+
+    <aside class="info" id="info">
+      <button class="x" id="close" aria-label="Close">&times;</button>
+      <span class="cat" id="iCat"></span>
+      <h3 id="iTitle"></h3>
+      <p id="iBody"></p>
+      <dl id="iSpecs"></dl>
+    </aside>
+
+    <div class="hud">
+      <div class="phases" id="phases"></div>
+      <div class="bar"><i id="bar"></i></div>
+    </div>
+
+    <div class="boot" id="boot">loading model…</div>
+  </div>
+</div>
+<div class="after">Scroll past the hero — page content continues here.</div>
+
+<script type="importmap">
+{"imports":{
+  "three":"./three.module.min.js",
+  "three/addons/":"./jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader}      from 'three/addons/loaders/gltfloader.js';
+import {DRACOLoader}     from 'three/addons/loaders/dracoloader.js';
+import {OrbitControls}   from 'three/addons/controls/orbitcontrols.js';
+import {HDRLoader}       from 'three/addons/loaders/hdrloader.js';
+
+/* ------------------------------------------------------------------ content
+   One card per GLB part. `radial` pushes the part outward from the building's
+   vertical axis, `lift` moves it up the exploded stack — the exploded layout is
+   data, not baked geometry, so it stays tunable without re-exporting.
+   NOTE: the spec figures are indicative for a build of this size. Replace them
+   with the real DAY ONE numbers before this goes anywhere public.           */
+const DATA = {
+  FOUNDATION:{radial:0,lift:-17,spot:1,cat:'Substructure',title:'Piled Foundation',
+    body:"Bored piles capped on a 3 m grid, tied by ground beams into a 500 mm structural slab. The pile layout follows the column grid above, so every load path runs straight to bearing strata — critical where rack density pushes 2 t/m².",
+    specs:{"Pile caps":"14 × 4 grid","Cap size":"3.0 × 3.0 × 0.7 m","Starter bars":"9 per cap","Slab":"500 mm RC"}},
+  PLINTH:{radial:0,lift:-8,cat:'Substructure',title:'Concrete Plinth',
+    body:"Raised plinth and stepped apron. Lifts the envelope clear of surface water and gives the perimeter its service margin for external containment and bollards.",
+    specs:{"Height":"1.3 m","Overhang":"2.6 m"}},
+  LEVEL_1:{radial:0,lift:9,spot:1,cat:'Structure',title:'Level 1 — Plant & HV',
+    body:"Ground level: incoming HV, transformers, switchrooms and the pump hall. Everything wet or heavy sits here, so the slabs above carry no plant risk.",
+    specs:{"Storey height":"3.8 m","Columns":"56","Use":"HV / pumps"}},
+  LEVEL_2:{radial:0,lift:23,spot:1,cat:'Structure',title:'Level 2 — Data Hall',
+    body:"First data hall floor. Raised access floor over a 550 mm slab, hot-aisle containment, CRAH line-up on the perimeter. Chilled water risers land at both ends for N+1 supply.",
+    specs:{"Storey height":"3.8 m","Slab":"550 mm","Use":"Data hall"}},
+  LEVEL_3:{radial:0,lift:37,spot:1,cat:'Structure',title:'Level 3 — Data Hall',
+    body:"Second hall floor, mirrored from Level 2 so containment detailing and airflow modelling carry over unchanged — a repeat-build floor rather than a bespoke one.",
+    specs:{"Storey height":"3.8 m","Use":"Data hall"}},
+  LEVEL_4:{radial:0,lift:51,spot:1,cat:'Structure',title:'Level 4 — UPS & Battery',
+    body:"Top floor: UPS rooms, battery rooms and the electrical spine feeding both halls below. Siting batteries high shortens DC runs and keeps them out of any flood path.",
+    specs:{"Storey height":"3.8 m","Use":"UPS / battery"}},
+  CLADDING_N:{radial:46,lift:30,spot:1,cat:'Envelope',title:'North Facade',
+    body:"Ribbed insulated metal panel in alternating charcoal and grey bays. Panels are prefabricated off site and hung on the frame bay by bay — that is what lets envelope close-in overlap with first fix inside.",
+    specs:{"Panels / long wall":"42","System":"Insulated ribbed IMP","Finish":"Charcoal / grey"}},
+  CLADDING_S:{radial:46,lift:30,cat:'Envelope',title:'South Facade',
+    body:"South elevation — same panel system and bay rhythm as the north face. Both long walls close in from one set of prefabricated bays.",
+    specs:{"Panels":"42","System":"Insulated ribbed IMP"}},
+  CLADDING_E:{radial:46,lift:30,cat:'Envelope',title:'East Gable',
+    body:"East gable. The shorter run, carrying the goods and plant access openings.",
+    specs:{"System":"Insulated ribbed IMP"}},
+  CLADDING_W:{radial:46,lift:30,cat:'Envelope',title:'West Gable',
+    body:"West gable, matching the east elevation.",
+    specs:{"System":"Insulated ribbed IMP"}},
+  PARAPET:{radial:0,lift:68,spot:1,cat:'Envelope',title:'Roof Deck & Parapet',
+    body:"Roof deck and upstand parapet. The parapet screens the plant deck from the ground plane and carries the fall-arrest line; the deck below is designed for the loaded weight of the full chiller plant.",
+    specs:{"Parapet":"3.0 m","Deck":"450 mm"}},
+  // ---- component-level rooftop plant (roof_bim.py). A part with no DATA entry is
+  // skipped by the loader entirely, so every exported part needs one here.
+  PLANT_STEEL:{radial:0,lift:78,cat:'Mechanical',title:'Plant Support Steelwork',
+    body:"The elevated platform the cooling plant stands on: primary and secondary beams, legs on baseplates, knee braces and galvanised grating. Raising the plant ~3.9 m clears the packaged modules beneath and keeps every unit serviceable from a walkway rather than off the roof membrane.",
+    specs:{"Platform level":"3.9 m above deck","Deck":"Galvanised grating"}},
+  PLANT_MODULES:{radial:22,lift:86,spot:1,cat:'Mechanical',title:'Packaged Plant Modules',
+    body:"16 containerised plant modules — eight per row — standing on the deck beneath the tower platform. Factory-built and commissioned before delivery, which moves a large slice of the M&E scope off the critical path and out of the weather.",
+    specs:{"Modules":"16 (8 per row)","Module":"6.2 × 3.0 × 2.9 m","Access":"6 stair flights"}},
+  ROOF_PIPEWORK:{radial:0,lift:96,spot:1,cat:'Mechanical',title:'Chilled Water Pipework',
+    body:"Four insulated headers with flanged joints, butterfly isolation valves and guide shoes on goalpost supports, plus U-loop expansion bends. Prefabricated in spools and lifted in — the single biggest programme saving on the mechanical package.",
+    specs:{"Headers":"4","Expansion loops":"12","Isolation valves":"12"}},
+  PUMP_SKIDS:{radial:26,lift:104,cat:'Mechanical',title:'Pump Skids',
+    body:"Skid-mounted primary pumps on the roof deck — baseplate, casing, motor and coupling guard, delivered as pre-piped units.",
+    specs:{"Skids":"4"}},
+  ROOF_ACCESS:{radial:0,lift:110,cat:'Access',title:'Roof Access Walkways',
+    body:"Grated walkway spine between the cooler rows with cross runs, handrail on both sides with mid-rail and kickplate, and stair flights down to deck level. Routed so every unit, valve set and tank is reachable without stepping on the membrane.",
+    specs:{"Handrail":"Top + mid rail + kickplate"}},
+  ROOF_ANCILLARY:{radial:30,lift:112,cat:'Mechanical',title:'Kiosks & Split Condensers',
+    body:"Plant kiosks with louvred doors housing BMS outstations and local isolation, plus ranked split condensers on stands serving the ancillary and office areas.",
+    specs:{"Kiosks":"3","Condenser ranks":"2 × 16"}},
+  DRY_COOLERS:{radial:0,lift:128,spot:1,cat:'Mechanical',title:'Dry Cooler Array',
+    body:"24 dry coolers in two matched ranks, each a V-coil pair with top and bottom headers under a 2 × 3 array of cowled fans raised on their own legs. Split across independent headers so any unit — or a whole rank — can be isolated without dropping capacity below N.",
+    specs:{"Units":"24 (2 × 12)","Fans":"6 per unit","Redundancy":"N+1"}},
+  COOLING_TOWERS:{radial:0,lift:120,spot:1,cat:'Mechanical',title:'Cooling Tower Array',
+    body:"26 cooling towers in two rows, louvred on both flanks with twin fans each. Rows split across independent headers, so any single tower — or a whole row — can be isolated for service without dropping capacity below N.",
+    specs:{"Towers":"26 (13 × 2)","Fans":"2 per tower","Redundancy":"N+1"}},
+  CONDENSERS:{radial:26,lift:104,spot:1,cat:'Mechanical',title:'Condensers & Buffer Tanks',
+    body:"Air-cooled condenser clusters plus horizontal buffer tanks. The buffer volume stops short-cycling when IT load steps, and holds ride-through while chillers restage.",
+    specs:{"Condenser units":"45","Buffer tanks":"3"}},
+  PIPEWORK:{radial:0,lift:92,spot:1,cat:'Mechanical',title:'Chilled Water Pipework',
+    body:"Paired flow and return runs the length of the deck on spring-and-guide supports, with cross-overs at each riser. Prefabricated in spools and lifted in — the single biggest programme saving on the M&E package.",
+    specs:{"Runs":"2 × longitudinal","Cross-overs":"4","Method":"Prefabricated spools"}},
+  WALKWAYS:{radial:0,lift:80,cat:'Access',title:'Access Walkways',
+    body:"Galvanised access walkway with double handrail and two staircases, routed so every tower, condenser and valve set is reachable without stepping on the roof membrane.",
+    specs:{"Handrail posts":"52","Stairs":"2"}},
+  PLANT_ROOMS:{radial:26,lift:104,cat:'Mechanical',title:'Roof Plant Enclosures',
+    body:"Roof-level plant enclosures and control cabinets — BMS outstations, pump starters and local isolation for each plant group.",
+    specs:{"Enclosures":"4","Cabinets":"7"}},
+  LOUVRE_SCREEN:{radial:54,lift:18,spot:1,cat:'Envelope',title:'Arched Louvre Screen',
+    body:"The signature element of the real elevation: a run of 22 arched-top bays in dark metal below the curtain wall, blades set to pass ventilation air while screening the plant behind. Modelled from the site aerial rather than the reference stages.",
+    specs:{"Bays":"22","Head":"Semicircular arch","Function":"Ventilation screen"}},
+  GLAZING:{radial:62,lift:26,cat:'Finishes',title:'Curtain Wall Glazing',
+    body:"Glazed curtain-wall band at the office and control end of the building, on a 46-mullion grid. The only glazing on the envelope — the halls themselves are sealed.",
+    specs:{"Mullions":"46","Glazing":"Solar-control IGU"}},
+  SIGNAGE:{radial:76,lift:22,cat:'Finishes',title:'Facade Signage',
+    body:"Facade signage — extruded lettering on a mounted panel, lit from the parapet line.",
+    specs:{"Type":"Extruded / face-lit"}},
+};
+const SHORT = {FOUNDATION:'Foundation',PLINTH:'Plinth',LEVEL_1:'Level 1',LEVEL_2:'Level 2',
+  LEVEL_3:'Level 3',LEVEL_4:'Level 4',CLADDING_N:'Facade',CLADDING_S:'Facade S',
+  CLADDING_E:'Gable E',CLADDING_W:'Gable W',PARAPET:'Roof deck',COOLING_TOWERS:'Cooling towers',
+  CONDENSERS:'Condensers',PIPEWORK:'Pipework',WALKWAYS:'Walkways',PLANT_ROOMS:'Plant rooms',
+  GLAZING:'Glazing',SIGNAGE:'Signage',LOUVRE_SCREEN:'Louvre screen',
+  DRY_COOLERS:'Dry coolers',PLANT_MODULES:'Plant modules',PLANT_STEEL:'Plant steel',
+  ROOF_PIPEWORK:'Pipework',PUMP_SKIDS:'Pump skids',ROOF_ACCESS:'Walkways',
+  ROOF_ANCILLARY:'Kiosks'};
+
+const PHASES = [["01","Foundation"],["02","Structure"],["03","Envelope"],["04","MEP Plant"],["05","Complete"]];
+const BOUNDS = [0.17,0.42,0.66,0.87,1.01];
+
+/* -------------------------------------------------------------------- setup */
+const cv = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({canvas:cv, antialias:true, alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.outputColorSpace    = THREE.SRGBColorSpace;
+renderer.toneMapping         = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.18;   // high-key, matching s5.png
+renderer.shadowMap.enabled   = true;
+renderer.shadowMap.type      = THREE.PCFSoftShadowMap;
+
+const scene  = new THREE.Scene();
+// 26° rather than a wider lens: architectural subjects read straighter, and it
+// keeps the near-corner perspective swing small enough to frame predictably.
+const camera = new THREE.PerspectiveCamera(26, 1, 1, 6000);
+
+/* ------------------------------------------------------------- environment
+   The hall is clad in near-black metal, which takes almost all of its
+   appearance from what it reflects — so the environment matters more than any
+   material setting. RoomEnvironment is an indoor studio: it made the cladding
+   read as grey plastic. This is a daylight sky/ground dome instead, with the
+   ground tone sampled off the real site apron. Sun colour is pushed above 1.0
+   because PMREM renders to half-float, so it carries real HDR punch. */
+const pmrem = new THREE.PMREMGenerator(renderer);
+
+function skyEnvironment(){
+  const s = new THREE.Scene();
+  const c = document.createElement('canvas'); c.width = 8; c.height = 256;
+  const ctx = c.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 0, 256);
+  g.addColorStop(0.00, '#4E8AC8');   // zenith
+  g.addColorStop(0.38, '#A8C9E6');
+  g.addColorStop(0.49, '#E6EEF6');   // horizon haze
+  g.addColorStop(0.51, '#9C9287');   // site apron / laterite bounce
+  g.addColorStop(1.00, '#6B625A');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 8, 256);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  s.add(new THREE.Mesh(new THREE.SphereGeometry(60, 24, 32),
+        new THREE.MeshBasicMaterial({map: tex, side: THREE.BackSide})));
+
+  const sun = new THREE.Mesh(new THREE.SphereGeometry(3.2, 12, 12),
+        new THREE.MeshBasicMaterial());
+  sun.material.color.setRGB(14, 12.2, 9.8);          // HDR, not clamped to white
+  sun.position.copy(new THREE.Vector3(-0.5, 0.62, 0.55).normalize().multiplyScalar(45));
+  s.add(sun);
+  return s;
+}
+// Procedural dome first so there is never a frame lit by nothing, then upgrade to
+// a real captured sky. syferfontein_18d_clear_puresky, Poly Haven, CC0 — a clear
+// sunny sky, which is what the site photo was shot under. A measured sky is the
+// single largest realism gain available here: dark metal is almost entirely its
+// reflections, and a real HDRI has the sun disc, gradient and warmth that a
+// hand-built gradient cannot fake.
+scene.environment = pmrem.fromScene(skyEnvironment(), 0.03).texture;
+new HDRLoader().load('./tex/sky.hdr', hdr => {
+  hdr.mapping = THREE.EquirectangularReflectionMapping;
+  const old = scene.environment;
+  scene.environment = pmrem.fromEquirectangular(hdr).texture;
+  hdr.dispose(); if(old) old.dispose();
+}, undefined, () => console.warn('sky.hdr missing — keeping procedural dome'));
+
+// 2.6 was tuned before there was a real sky. Measured with __dh.sample(), that sun
+// was swamping the HDRI entirely: env and roughness changes moved the rendered
+// cladding by 0 while albedo x sun landed it at 121 against a photographed 46.
+// The captured sky now carries the ambient, so this is only a shadow-caster and a
+// little directional shaping.
+const sun = new THREE.DirectionalLight(0xfff6ea, 0.62);
+sun.position.set(-95, 165, 120);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.bias = -0.0009;
+sun.shadow.normalBias = 0.5;
+scene.add(sun, sun.target);
+const fill = new THREE.DirectionalLight(0xe6eef8, 0.42);
+fill.position.set(130, 80, -100); scene.add(fill);
+scene.add(new THREE.HemisphereLight(0xf4f7fb, 0xd6d0d4, 0.85));
+
+const controls = new OrbitControls(camera, cv);
+controls.enableDamping = true; controls.dampingFactor = 0.075;
+controls.enableZoom = false;              // leave the wheel to the page scroll
+controls.enablePan  = false;
+controls.minPolarAngle = 0.24; controls.maxPolarAngle = Math.PI*0.487;
+controls.autoRotate = false; controls.autoRotateSpeed = 0.4;
+
+// Azimuth is driven by scroll — a 49° sweep, same idea as the Blender render's
+// orbit. The exact-fit camera dollies as the footprint's apparent width changes,
+// so tying that to scroll makes the move read as choreography; on free
+// auto-orbit the same dolly instead looks like the camera is breathing.
+// NB: this OrbitControls build has no setAzimuthalAngle — the pose is written
+// straight to camera.position, and controls.update() then keeps it.
+// The hall is 108 × 34, so azimuth stays near the +Z side: that keeps the long
+// facade across the frame. Swinging out past ~50° turns the building end-on and
+// it reads small no matter how tightly the camera fits it.
+const AZ0 = 0.74, AZ1 = 0.26, POLAR = 1.12;
+let azCur = AZ0, userTouched = false;
+controls.addEventListener('start', ()=>{ userTouched = true; });
+
+function orbitFromScroll(){
+  const az = AZ0 + (AZ1 - AZ0)*progress;
+  azCur += (az - azCur)*0.12;
+  const d = Math.max(1, camera.position.distanceTo(controls.target));
+  const sp = Math.sin(POLAR);
+  camera.position.set(controls.target.x + d*sp*Math.sin(azCur),
+                      controls.target.y + d*Math.cos(POLAR),
+                      controls.target.z + d*sp*Math.cos(azCur));
+  camera.lookAt(controls.target);
+  camera.updateMatrixWorld();
+}
+
+/* --------------------------------------------------------------------- load */
+const parts = [];            // {key,node,base,dir,radial,lift,center,mats[]}
+const hitList = [];          // flat mesh list for the raycaster
+const meshPart = new Map();  // mesh -> part
+let ground = null, ready = false;
+
+const draco = new DRACOLoader().setDecoderPath('./jsm/libs/draco/');
+new GLTFLoader().setDRACOLoader(draco).load('./datahall.glb', gltf => {
+  const model = gltf.scene;
+
+  // sit the model on y=0, centred in x/z, so orbit and explode are symmetric
+  const box0 = new THREE.Box3().setFromObject(model);
+  const c0 = box0.getCenter(new THREE.Vector3());
+  model.position.set(-c0.x, -box0.min.y, -c0.z);
+  scene.add(model);
+  model.updateWorldMatrix(true, true);
+
+  // A multi-primitive glTF mesh becomes a GROUP of meshes in three.js, so a
+  // part node is not necessarily a Mesh. Walk it for the real meshes.
+  const pc = new THREE.Vector3();
+  for(const node of model.children.slice()){
+    const d = DATA[node.name]; if(!d) continue;
+    const meshes = [];
+    node.traverse(o => { if(o.isMesh) meshes.push(o); });
+    if(!meshes.length) continue;
+
+    const mats = [];
+    // The signage carries the real DAY ONE artwork on authored 0→1 UVs. Box-
+    // projecting those would scramble the logo, so it keeps the UVs from the GLB.
+    const keepUVs = node.name === "SIGNAGE";
+    for(const m of meshes){
+      m.castShadow = m.receiveShadow = true;
+      if(!keepUVs) boxProjectUV(m.geometry);   // world-scale UVs for tiled detail
+      // materials are shared across parts in the GLB — clone so dimming or
+      // highlighting one part can never bleed into another
+      const list = (Array.isArray(m.material) ? m.material : [m.material]).map(src => {
+        const c = src.clone();
+        tune(c);
+        c.userData._op = c.opacity;
+        c.userData._tr = c.transparent;
+        c.userData._em = c.emissive.clone();
+        return c;
+      });
+      m.material = list.length === 1 ? list[0] : list;
+      mats.push(...list);
+      hitList.push(m);
+    }
+
+    new THREE.Box3().setFromObject(node).getCenter(pc);   // world space
+    const dir = new THREE.Vector3(pc.x - model.position.x, 0, pc.z - model.position.z);
+    if(dir.length() < 4) dir.set(0,0,0); else dir.normalize();
+
+    const p = {key:node.name, node, base:node.position.clone(), dir,
+               radial:d.radial, lift:d.lift, center:pc.clone(), mats,
+               box0:new THREE.Box3().setFromObject(node)};   // for the camera fit
+    parts.push(p);
+    meshes.forEach(m => meshPart.set(m, p));
+  }
+
+  const size = box0.getSize(new THREE.Vector3());
+
+  ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(size.x*5, size.z*9),
+    new THREE.ShadowMaterial({color:0x2A2430, opacity:0.13, transparent:true}));
+  ground.rotation.x = -Math.PI/2; ground.position.y = 0.02;
+  ground.receiveShadow = true; scene.add(ground);
+
+  const sx = Math.max(size.x, size.z);
+  sun.shadow.camera.left = -sx; sun.shadow.camera.right = sx;
+  sun.shadow.camera.top  =  sx; sun.shadow.camera.bottom = -sx;
+  sun.shadow.camera.near = 1;   sun.shadow.camera.far = sx*6;
+  sun.shadow.camera.updateProjectionMatrix();
+  sun.target.position.set(0, size.y*0.4, 0);
+
+  // rough starting pose; fitCamera() converges it exactly within a few frames
+  const span = Math.max(size.x, 150);
+  controls.target.set(0, 60, 0);
+  camera.position.set(span*1.5, 130, span*1.5);
+
+  buildSpots();
+  buildFilters();
+  ready = true;
+  resize(); onScroll();
+  document.getElementById('boot').classList.add('gone');
+  renderer.setAnimationLoop(tick);
+},
+undefined,
+err => {
+  document.getElementById('boot').textContent =
+    'model failed to load — serve this folder over http, not file://';
+  console.error(err);
+});
+
+/* --------------------------------------------------------------- camera fit
+   Framing is solved every frame by measurement, not by a formula.
+
+   A bounding-sphere fit was far too loose for a 108 × 34 × 29 box — the building
+   filled only ~60% of the frame. An exact analytic corner fit was tight but
+   still wasteful, because under perspective a world box does not project
+   symmetrically: the near bottom corner swings much further from the pivot than
+   the far top one, so aiming at the box centre left ~116px dead at the top.
+
+   So instead: project the layout's corners with the camera as it stands, then
+   correct distance and frustum centre toward what was measured. Damped, it
+   converges in a few frames, tracks the explode animation continuously, and
+   needs no assumption about orbit angle or perspective behaviour.            */
+const MARGIN = 1.03;
+// viewport edges reserved for the chrome, so the model is framed in the gap
+// between the nav and the phase strip rather than behind them
+const PAD = {t:74, b:112, l:28, r:28};
+const _b = new THREE.Box3(), _uni = new THREE.Box3(), _off = new THREE.Vector3(),
+      _v = new THREE.Vector3(), _P = new THREE.Vector3(),
+      _right = new THREE.Vector3(), _up = new THREE.Vector3(), _back = new THREE.Vector3();
+let dSmooth = 0, shiftX = 0, shiftY = 0;   // shift* are in padded-NDC units
+
+function offsetOf(p, e, out){
+  return out.set(p.dir.x*p.radial*e, p.lift*e, p.dir.z*p.radial*e);
+}
+let focusKeys = null;      // view presets frame a subset; null = whole model
+function fitCamera(e){
+  _uni.makeEmpty();
+  for(const p of parts){
+    if(focusKeys && !focusKeys.has(p.key)) continue;
+    if(hidden.has(p.key)) continue;                 // filtered-out parts do not pull the fit
+    _uni.union(_b.copy(p.box0).translate(offsetOf(p, e, _off)));
+  }
+  if(_uni.isEmpty())
+    for(const p of parts) _uni.union(_b.copy(p.box0).translate(offsetOf(p, e, _off)));
+  _uni.getCenter(_P);
+
+  camera.matrixWorld.extractBasis(_right, _up, _back);   // _back points at the camera
+
+  const w = cv.clientWidth || 1, h = cv.clientHeight || 1;
+  const wUse = Math.max(80, w - PAD.l - PAD.r), hUse = Math.max(80, h - PAD.t - PAD.b);
+  const tv0 = Math.tan(camera.fov*Math.PI/360);
+  const tv = tv0 * (hUse/h);                        // half-angles of the padded band
+  const th = tv0 * camera.aspect * (wUse/w);
+
+  const dCur = Math.max(1, camera.position.distanceTo(controls.target));
+  let xlo = 1e9, xhi = -1e9, ylo = 1e9, yhi = -1e9;
+  for(const p of parts){
+    if(focusKeys && !focusKeys.has(p.key)) continue;
+    if(hidden.has(p.key)) continue;
+    _b.copy(p.box0).translate(offsetOf(p, e, _off));
+    for(let i=0;i<8;i++){
+      _v.set(i&1?_b.max.x:_b.min.x, i&2?_b.max.y:_b.min.y, i&4?_b.max.z:_b.min.z).sub(_P);
+      const zc = dCur - _v.dot(_back);              // depth in front of the camera
+      if(zc < 0.5) continue;
+      const nx = _v.dot(_right)/(zc*th), ny = _v.dot(_up)/(zc*tv);
+      if(nx<xlo) xlo=nx; if(nx>xhi) xhi=nx;
+      if(ny<ylo) ylo=ny; if(ny>yhi) yhi=ny;
+    }
+  }
+  if(xhi < xlo) return;                             // nothing in front of us yet
+
+  // the subject currently spans this much of the band, and sits off-centre by this
+  const need = Math.max((xhi-xlo)/2, (yhi-ylo)/2) * MARGIN;
+  const cx = (xhi+xlo)/2, cy = (yhi+ylo)/2;
+
+  const dTarget = dCur * need;                      // >1 ⇒ pull back, <1 ⇒ move in
+  dSmooth = dSmooth ? dSmooth + (dTarget-dSmooth)*0.2 : dTarget;
+  shiftX += (cx - shiftX)*0.2;
+  shiftY += (cy - shiftY)*0.2;
+
+  // Positive offsetY lowers the frustum top, i.e. moves the image UP. The subject
+  // sitting above centre (shiftY > 0) therefore needs a negative offset.
+  camera.setViewOffset(w, h,
+    (PAD.r - PAD.l)/2 + shiftX*wUse/2,
+    (PAD.b - PAD.t)/2 - shiftY*hUse/2,
+    w, h);
+
+  controls.minDistance = controls.maxDistance = dSmooth;
+  controls.target.lerp(_P, 0.15);
+}
+
+/* --------------------------------------------------------------- materials
+   Albedo is MEASURED off ../isolated-stages/ref-building.jpg, not eyeballed.
+   The Blender materials rendered the cladding at #D0D1D3 / #6C6F75 against a
+   photographed #58585A / #2E2D2D — roughly 6.7× too bright in linear terms,
+   which is the single biggest reason the model read as CG. The real hall is
+   near-black charcoal ribbed metal.
+
+   Confidence note: cladding, glazing and roof deck came from low-variance
+   patches (sd ≤ 13) and are trustworthy. The plant samples straddled sunlit and
+   shadowed steel (sd ~50), so tower/condenser/pipework tones below are informed
+   estimates, not measurements. */
+/* Palette retargeted to the CLIENT RENDER (../isolated-stages/s5.png), not to the
+   site photograph.
+
+   This was the root cause of the viewer looking nothing like the design despite
+   both coming off the same project. I had measured `ref-building.jpg` — a real
+   aerial shot in warm, dusty sun — and rendered those values as a product visual.
+   Correct measurement, wrong target: it produced a brown/khaki roof where the
+   design is clean and high-key.
+
+   Values are k-means cluster centroids of s5.png with the white page background
+   masked out, so they are the render's actual dominant palette:
+     #EAD8D9 11.5%  plant, pipework, modules   (brightest)
+     #C6B3B8 11.9%  deck, coping, plinth
+     #A295A0 10.8%  cooler bodies, steelwork
+     #837986 12.1%  mid tones
+     #6B626C 17.2%  \
+     #5A525A 16.6%   } cladding and shadow
+     #48424C 11.2%  /
+     #38343C  8.7%  glazing, deepest shadow
+   Note the range is COMPRESSED and slightly mauve — nothing is pure white or
+   near-black. My previous cladDark (#2E2D2D) was darker than anything in s5.
+
+   IMPORTANT: those cluster values are s5's RENDERED pixels, which already contain
+   its lighting. Using them directly as albedo lights them a second time — the
+   cladding came out at 126 against a target of 72, nearly the same value as the
+   plant, and all tonal separation was lost. (Precisely the inverse of the earlier
+   error, where photo-measured albedo was too dark under this viewer's light.)
+
+   So albedo is FITTED: render, measure with __dh.sample(), and scale in LINEAR
+   space by target/measured with hue preserved. The near-white plant needed no
+   correction (ratios 0.94–1.01) because it already sits at the top of the range;
+   only the darks were off. Verified figures in the table below. */
+const MEASURED = {
+  cladDark:  0x322E35,   // s5 72   — two fit rounds: 126 (x0.57) then 92 (x0.78)
+  cladLight: 0x3F393F,   // s5 72   — two fit rounds, tracks cladDark
+  louvre:    0x3E3841,   // s5 72   — rendered 101 (x0.71)
+  glass:     0x322E36,   // s5 56   — rendered 72  (x0.78)
+  deck:      0xC6B3B8,   // s5 198  — already correct
+  towerBody: 0x887D86,   // s5 162  — 196 (x0.83) then 197 (x0.82)
+  steel:     0xD2C4C8,   // s5 216  — rendered 229 (x0.94)
+  concrete:  0xBDABAF,   // s5 198  — rendered 220 (x0.90)
+  plant:     0xF0DDDE,   // s5 234  — rendered 222, nudged up (x1.05)
+};
+
+// Fine vertical flutes. The GLB already models the ~2.5 m panel joints as real
+// geometry; this is the finer ~180 mm profile on the panel face itself.
+function ribNormalTexture(px = 512, flutes = 22){
+  const c = document.createElement('canvas'); c.width = c.height = px;
+  const ctx = c.getContext('2d'), img = ctx.createImageData(px, px);
+  for(let y = 0; y < px; y++) for(let x = 0; x < px; x++){
+    const f = (x/px*flutes) % 1;
+    let nx = Math.sin(f*Math.PI*2)*0.5;
+    if(f < 0.05 || f > 0.95) nx *= 2.0;              // crisp shadow at the joint
+    const i = (y*px + x)*4;
+    img.data[i] = Math.round((nx*0.5 + 0.5)*255);
+    img.data[i+1] = 128; img.data[i+2] = 255; img.data[i+3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+// Weathering streaks — breaks up the dead-flat roughness that reads as plastic.
+function grimeTexture(px = 256, light = true){
+  const c = document.createElement('canvas'); c.width = c.height = px;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = light ? '#EFEFEF' : '#9A9A9A'; ctx.fillRect(0, 0, px, px);
+  for(let i = 0; i < 500; i++){
+    ctx.globalAlpha = 0.015 + Math.random()*0.05;
+    ctx.fillStyle = Math.random() < 0.5 ? '#FFFFFF' : '#4A4A4A';
+    ctx.fillRect(Math.random()*px, Math.random()*px,
+                 1 + Math.random()*3, px*(0.15 + Math.random()*0.85));
+  }
+  ctx.globalAlpha = 1;
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+// UVs are baked in raw metres (see boxProjectUV), so tiling is set per use by
+// cloning the texture and adjusting repeat. clone() shares the canvas image, so
+// this costs no extra memory.
+function scaled(base, metresPerTile, srgb){
+  const t = base.clone();
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(1/metresPerTile, 1/metresPerTile);
+  t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+  t.needsUpdate = true;
+  return t;
+}
+const _rib = ribNormalTexture(), _gA = grimeTexture(256, true), _gR = grimeTexture(256, false);
+
+// Photographed PBR set for the cladding: corrugated_iron_03, Poly Haven, CC0.
+// Real ribs, real roughness variation, real occlusion in the rib valleys — that
+// is what the hand-built sine profile could not produce.
+//
+// Deliberately NOT using its albedo. The source is blue-tinted galvanised sheet
+// with rust drips off the fixings; a new data hall has neither, and an albedo
+// map also drags in a colour-space trap (a mid-grey "detail" map read as sRGB
+// multiplies by 0.22, not 1.0). Colour therefore stays the measured charcoal and
+// the texture supplies geometry, roughness and occlusion — which is where the
+// realism actually comes from.
+const texLoader = new THREE.TextureLoader();
+function pbr(file, metres, srgb){
+  const t = texLoader.load('./tex/' + file, undefined, undefined,
+              () => console.warn('texture missing:', file));
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(1/metres, 1/metres);
+  t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+  t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  return t;
+}
+const CLAD_TILE = 4.0;                   // ≈40 ribs / 4 m ≈ 100 mm pitch, as photographed
+const TEX = {
+  cladNrm:   pbr('clad_nrm.webp',   CLAD_TILE, false),
+  cladRough: pbr('clad_rough.webp', CLAD_TILE, false),
+  cladAO:    pbr('clad_ao.webp',    CLAD_TILE, false),
+  rghDeck:  scaled(_gR, 14.0,  false),
+  rghConc:  scaled(_gR,  9.0,  false),
+  ribClad:  scaled(_rib, 3.0,  false),   // procedural fallback, kept for reference
+};
+
+// The GLB's UVs are per-box 0→1, so any texture would scale differently on every
+// panel. Re-project from position + dominant normal, in raw metres, so tiling is
+// uniform across the whole model. Positions are local, but the model only
+// translates, so that merely shifts the tiling phase.
+function boxProjectUV(geo){
+  const pos = geo.attributes.position, nor = geo.attributes.normal;
+  if(!nor) return;
+  const uv = new Float32Array(pos.count*2);
+  for(let i = 0; i < pos.count; i++){
+    const nx = Math.abs(nor.getX(i)), ny = Math.abs(nor.getY(i)), nz = Math.abs(nor.getZ(i));
+    let u, v;
+    if(ny >= nx && ny >= nz){ u = pos.getX(i); v = pos.getZ(i); }   // up-facing
+    else if(nx >= nz){        u = pos.getZ(i); v = pos.getY(i); }   // faces X
+    else {                    u = pos.getX(i); v = pos.getY(i); }   // faces Z
+    uv[i*2] = u; uv[i*2+1] = v;
+  }
+  geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+}
+
+function tune(m){
+  const n = (m.name||'').toLowerCase();
+  m.envMapIntensity = 1.0;
+
+  // Explicit table. The old substring cascade silently mishandled the roof_bim
+  // materials that arrived later: `rb_coping` matched the 'cop' cladding rule and
+  // came out dark, while rb_galv / rb_casing / rb_module / rb_kiosk / rb_insul /
+  // rb_tank / rb_panel matched nothing at all and kept whatever Blender set.
+  const SET = (hex, rough, metal, env) => {
+    m.color.setHex(hex); m.roughness = rough; m.metalness = metal;
+    m.envMapIntensity = env === undefined ? 1.0 : env;
+  };
+  const P = MEASURED;
+
+  // ---- envelope: the only genuinely dark surfaces in s5
+  if(n === 'rb_parapet' || n.includes('clad')){
+    // `DARK_BANDS` in build_v2.py marks only 15 of 42 bays "cladDrk", so honouring
+    // the names gives a mostly-LIGHT facade; the hall is predominantly dark. The
+    // majority material is therefore mapped to the darker tone.
+    SET(n.includes('drk') ? P.cladLight : P.cladDark, 0.55, 0.10, 1.05);
+    m.normalMap = TEX.cladNrm; m.normalScale.set(0.85, 0.85);
+    m.roughnessMap = TEX.cladRough;
+    m.aoMap = TEX.cladAO; m.aoMapIntensity = 0.7;
+    m.map = null;
+  }
+  else if(n.includes('glass')){
+    SET(P.glass, 0.06, 0.10, 2.0);
+    m.transparent = false; m.opacity = 1;
+  }
+  else if(n.includes('mull'))        SET(P.cladDark, 0.42, 0.30);
+  else if(n.includes('louvre')){
+    SET(P.louvre, 0.50, 0.18);
+    m.normalMap = TEX.cladNrm; m.normalScale.set(0.7, 0.7);
+    m.roughnessMap = TEX.cladRough;
+  }
+  else if(n.includes('sign'))        m.envMapIntensity = 1.0;   // keep logo texture
+
+  // ---- deck / concrete: light, matte
+  else if(n === 'rb_deck' || n.includes('deck')){
+    SET(P.deck, 0.94, 0.0, 0.75); m.roughnessMap = TEX.rghDeck;
+  }
+  else if(n === 'rb_coping' || n.includes('plinth') || n.includes('slab') ||
+          n.includes('cap') || n === 'col'){
+    SET(P.concrete, 0.94, 0.0, 0.7); m.roughnessMap = TEX.rghConc;
+  }
+
+  // ---- plant: near-white, which is what carries the high-key read
+  else if(n === 'rb_pipe' || n === 'rb_insul' || n === 'rb_tank' ||
+          n === 'rb_galv' || n === 'rb_kiosk' || n === 'rb_module' ||
+          n.includes('white') || n.includes('pipe'))
+                                     SET(P.plant, 0.42, 0.10, 1.2);
+  else if(n === 'rb_modrib')         SET(P.steel, 0.48, 0.10, 1.1);
+  else if(n === 'rb_steel' || n.includes('steel'))
+                                     SET(P.steel, 0.40, 0.18, 1.2);
+  else if(n === 'rb_casing' || n === 'rb_coil' || n.includes('tower'))
+                                     SET(P.towerBody, 0.46, 0.25, 1.25);
+  else if(n === 'rb_fan' || n.includes('fan'))
+                                     SET(P.cladLight, 0.42, 0.35, 1.1);
+  else if(n === 'rb_panel')          SET(P.cladDark, 0.42, 0.30);
+  else if(n.includes('cond'))        SET(P.plant, 0.42, 0.15, 1.2);
+  else if(n.includes('rebar'))       SET(P.towerBody, 0.50, 0.60);
+  // rb_red / red left alone — the small red accents are deliberate
+
+  m.needsUpdate = true;
+}
+
+/* -------------------------------------------------------------- scroll state */
+const track = document.getElementById('track');
+const bar   = document.getElementById('bar');
+const copy  = document.getElementById('copy');
+const hint  = document.getElementById('hint');
+let progress = 0, explode = 1, ease = 1, forced = false;
+
+const phasesEl = document.getElementById('phases');
+PHASES.forEach(([n,t],i)=>phasesEl.insertAdjacentHTML('beforeend',
+  `<div class="ph" id="ph${i}"><span class="n">${n}</span><span class="t">${t}</span></div>`));
+const phEls = PHASES.map((_,i)=>document.getElementById('ph'+i));
+
+// Read scroll position from layout every frame rather than from the scroll
+// event. Scroll events are coalesced — and in background tabs or a preview pane
+// that isn't compositing they never fire at all — but one rect read per frame is
+// cheap and always current.
+let shownPct = -1;
+function onScroll(){
+  const r = track.getBoundingClientRect(), range = r.height - innerHeight;
+  progress = range>0 ? Math.min(1, Math.max(0, -r.top/range)) : 0;
+  explode = 1 - Math.min(1, progress/0.82);   // tail of the scroll holds it complete
+
+  const pct = Math.round(progress*1000);
+  if(pct === shownPct) return;                // skip the DOM writes when static
+  shownPct = pct;
+  bar.style.width = (progress*100)+'%';
+  let idx = BOUNDS.findIndex(b => progress < b); if(idx<0) idx=4;
+  phEls.forEach((el,i)=>el.classList.toggle('on', i===idx));
+  copy.style.opacity = progress>0.68 ? 0 : 1;
+  hint.style.opacity = progress>0.10 ? 1 : 0;
+}
+
+/* ------------------------------------------------------------ interactivity */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+let hover = null, selected = null;
+const info    = document.getElementById('info');
+const spotsEl = document.getElementById('spots');
+const spotMap = new Map();
+
+function buildSpots(){
+  for(const p of parts){
+    if(!DATA[p.key].spot) continue;
+    const el = document.createElement('div');
+    el.className = 'spot';
+    el.innerHTML = `<b></b><span class="lab">${SHORT[p.key]||p.key}</span>`;
+    el.addEventListener('click', e=>{ e.stopPropagation(); select(p); });
+    el.addEventListener('pointerenter', ()=>setHover(p));
+    el.addEventListener('pointerleave', ()=>setHover(null));
+    spotsEl.appendChild(el); spotMap.set(p, el);
+  }
+}
+function setHover(p){
+  if(hover===p) return;
+  hover = p; cv.style.cursor = p ? 'pointer' : '';
+  emphasise();
+}
+function select(p){
+  selected = p;
+  spotMap.forEach((el,q)=>el.classList.toggle('on', q===p));
+  if(!p){ info.classList.remove('open'); emphasise(); return; }
+  const d = DATA[p.key];
+  document.getElementById('iCat').textContent   = d.cat;
+  document.getElementById('iTitle').textContent = d.title;
+  document.getElementById('iBody').textContent  = d.body;
+  document.getElementById('iSpecs').innerHTML =
+    Object.entries(d.specs||{}).map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('');
+  info.classList.add('open');
+  emphasise();
+}
+document.getElementById('close').onclick = ()=>select(null);
+addEventListener('keydown', e=>{ if(e.key==='Escape') select(null); });
+
+// dim everything that isn't the focused part; lift the one that is
+function emphasise(){
+  const focus = selected || hover;
+  for(const p of parts){
+    const isFocus = p === focus;
+    const dim = focus && !isFocus;
+    for(const m of p.mats){
+      m.transparent = dim || m.userData._tr;
+      m.opacity     = dim ? 0.12 : m.userData._op;
+      m.depthWrite  = !dim;
+      m.emissive.copy(m.userData._em);
+      if(isFocus) m.emissive.addScalar(0.06);
+    }
+  }
+}
+
+function pick(e){
+  const r = cv.getBoundingClientRect();
+  ndc.x =  ((e.clientX - r.left)/r.width )*2 - 1;
+  ndc.y = -((e.clientY - r.top )/r.height)*2 + 1;
+  ray.setFromCamera(ndc, camera);
+  // three's raycast traversal tests object.layers but NOT object.visible, so a
+  // filtered-out part stays clickable unless it is excluded here.
+  for(const h of ray.intersectObjects(hitList, false)){
+    const p = meshPart.get(h.object);
+    if(p && !hidden.has(p.key)) return p;
+  }
+  return null;
+}
+let dragged = false;
+cv.addEventListener('pointerdown', ()=>{ dragged = false; });
+cv.addEventListener('pointermove', e=>{ if(e.buttons) dragged = true;
+                                        else if(ready) setHover(pick(e)); });
+cv.addEventListener('pointerup', e=>{ if(!dragged && ready) select(pick(e)); });
+
+/* ------------------------------------------------ view presets / systems / filters
+   Named views beat scroll-only navigation for a technical audience: they give
+   direct access to the shots that actually explain the building. Each preset sets
+   an orbit pose and, optionally, the subset the camera fit should frame. */
+const VIEWS = {
+  'Aerial':       {az: 0.62, po: 0.74, focus: null},
+  'Tower row':    {az: 0.24, po: 1.26,
+                   focus: ['DRY_COOLERS','PLANT_MODULES','PLANT_STEEL','ROOF_PIPEWORK',
+                           'ROOF_ACCESS','PUMP_SKIDS','ROOF_ANCILLARY']},
+  'Level change': {az: 0.98, po: 1.14,
+                   focus: ['FOUNDATION','PLINTH','LEVEL_1','LEVEL_2','LEVEL_3','LEVEL_4']},
+  'Plan':         {az: 0.00, po: 0.07, focus: null},
+  'Signage':      {az: 0.07, po: 1.44,
+                   focus: ['SIGNAGE','CLADDING_S','GLAZING','LOUVRE_SCREEN','PARAPET']},
+};
+// system → accent. Deliberately restrained: one hue family plus warm accents, so
+// "colour by system" reads as an overlay on the render rather than a repaint.
+const SYSTEM_COLOUR = {
+  'Substructure': 0x9AA6B4, 'Structure': 0x7FA8C9, 'Envelope': 0x4C5A6B,
+  'Mechanical':   0x3FA7D6, 'Access':    0xE2B04A, 'Finishes': 0x6FCF97,
+};
+const hidden = new Set();      // part keys hidden by the filter drawer
+let bySystem = false;
+
+function orbitTo(az, po){
+  userTouched = true;                       // stop the scroll sweep fighting the preset
+  controls.autoRotate = false; bOrbit.classList.remove('on');
+  azCur = az;
+  const d = Math.max(1, camera.position.distanceTo(controls.target));
+  const sp = Math.sin(po);
+  camera.position.set(controls.target.x + d*sp*Math.sin(az),
+                      controls.target.y + d*Math.cos(po),
+                      controls.target.z + d*sp*Math.cos(az));
+  camera.lookAt(controls.target);
+  camera.updateMatrixWorld();
+}
+
+const viewsEl = document.getElementById('views');
+const viewBtns = {};
+for(const name of Object.keys(VIEWS)){
+  const b = document.createElement('button');
+  b.className = 'vb'; b.textContent = name;
+  b.onclick = () => {
+    const v = VIEWS[name];
+    focusKeys = v.focus ? new Set(v.focus) : null;
+    orbitTo(v.az, v.po);
+    Object.values(viewBtns).forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    select(null);
+  };
+  viewsEl.appendChild(b); viewBtns[name] = b;
+}
+
+function applySystemColour(){
+  for(const p of parts){
+    const hex = SYSTEM_COLOUR[DATA[p.key].cat];
+    for(const m of p.mats){
+      if(m.userData._baseCol === undefined) m.userData._baseCol = m.color.getHex();
+      if(bySystem && hex !== undefined){
+        m.color.setHex(hex);
+        m.userData._mapWas = m.userData._mapWas === undefined ? m.map : m.userData._mapWas;
+        if(p.key !== 'SIGNAGE') m.map = null;      // flat fill reads the system clearly
+      } else {
+        m.color.setHex(m.userData._baseCol);
+        if(m.userData._mapWas !== undefined) m.map = m.userData._mapWas;
+      }
+      m.needsUpdate = true;
+    }
+  }
+}
+
+const fbody = document.getElementById('fbody');
+const CATS_ORDER = ['Substructure','Structure','Envelope','Mechanical','Access','Finishes'];
+const catOf = k => DATA[k].cat;
+function buildFilters(){
+  const cats = CATS_ORDER.filter(c => parts.some(p => catOf(p.key) === c));
+  for(const c of cats){
+    const id = 'f_' + c.replace(/\W/g,'');
+    const sw = '#' + (SYSTEM_COLOUR[c] || 0x999999).toString(16).padStart(6,'0');
+    fbody.insertAdjacentHTML('beforeend',
+      `<label><input type="checkbox" id="${id}" checked>` +
+      `<span class="sw" style="background:${sw}"></span>${c}</label>`);
+    document.getElementById(id).addEventListener('change', ev => {
+      for(const p of parts){
+        if(catOf(p.key) !== c) continue;
+        if(ev.target.checked) hidden.delete(p.key); else hidden.add(p.key);
+        p.node.visible = !hidden.has(p.key);
+        const el = spotMap.get(p); if(el) el.style.display = hidden.has(p.key) ? 'none' : '';
+      }
+      if(selected && hidden.has(selected.key)) select(null);
+    });
+  }
+}
+
+/* --------------------------------------------------------------------- tools */
+const bExp = document.getElementById('bExp'),
+      bOrbit = document.getElementById('bOrbit'),
+      bReset = document.getElementById('bReset');
+bExp.onclick   = ()=>{ forced = !forced; bExp.classList.toggle('on', forced); };
+bOrbit.onclick = ()=>{ controls.autoRotate = !controls.autoRotate;
+                       bOrbit.classList.toggle('on', controls.autoRotate);
+                       if(controls.autoRotate) userTouched = true; };
+// hands the camera back to the scroll-driven sweep
+bReset.onclick = ()=>{ userTouched = false; focusKeys = null;
+  controls.autoRotate = false; bOrbit.classList.remove('on');
+  Object.values(viewBtns).forEach(x => x.classList.remove('on'));
+  select(null); };
+
+document.getElementById('bSystem').onclick = (ev)=>{
+  bySystem = !bySystem;
+  ev.currentTarget.classList.toggle('on', bySystem);
+  applySystemColour();
+  emphasise();                            // re-apply any dim/highlight on top
+};
+document.getElementById('bAll').onclick = ()=>{
+  hidden.clear(); focusKeys = null;
+  for(const p of parts){
+    p.node.visible = true;
+    const el = spotMap.get(p); if(el) el.style.display = '';
+  }
+  fbody.querySelectorAll('input').forEach(i => i.checked = true);
+  Object.values(viewBtns).forEach(x => x.classList.remove('on'));
+  select(null);
+};
+
+/* ---------------------------------------------------------------------- loop */
+const wv = new THREE.Vector3(), fwd = new THREE.Vector3();
+let lastTick = 0, loopErr = false;
+// A throw in here is otherwise silent — the loop just stops moving and the model
+// sits wherever it was. Surface it once, loudly.
+function tick(){
+  lastTick = performance.now();
+  try { frame(); }
+  catch(err){
+    if(!loopErr){ loopErr = true; console.error('render loop failed:', err);
+      document.getElementById('boot').textContent = 'render loop failed — see console';
+      document.getElementById('boot').classList.remove('gone'); }
+  }
+}
+function frame(){
+  onScroll();
+  rect = cv.getBoundingClientRect();
+  const want = forced ? 1 : explode;
+  ease += (want - ease)*0.085;
+  if(Math.abs(want - ease) < 0.0006) ease = want;
+  const e = ease*ease*(3 - 2*ease);                       // smoothstep
+
+  for(const p of parts){
+    p.node.position.set(p.base.x + p.dir.x*p.radial*e,
+                        p.base.y + p.lift*e,
+                        p.base.z + p.dir.z*p.radial*e);
+  }
+  if(ground) ground.material.opacity = 0.13*(1 - e*0.88);
+
+  if(!userTouched && !controls.autoRotate) orbitFromScroll();
+  fitCamera(e);
+  controls.update();
+
+  renderer.render(scene, camera);
+
+  // hotspots follow their part in screen space
+  const r = rect;
+  camera.getWorldDirection(fwd);
+  spotMap.forEach((el,p)=>{
+    wv.set(p.center.x + p.dir.x*p.radial*e,
+           p.center.y + p.lift*e,
+           p.center.z + p.dir.z*p.radial*e);
+    const behind = wv.clone().sub(camera.position).dot(fwd) < 0;
+    wv.project(camera);
+    el.style.left = ((wv.x*0.5 + 0.5)*r.width )+'px';
+    el.style.top  = ((-wv.y*0.5 + 0.5)*r.height)+'px';
+    el.classList.toggle('vis',
+      e > 0.14 && !behind && Math.abs(wv.x) < 1.02 && Math.abs(wv.y) < 1.02);
+  });
+}
+
+/* -------------------------------------------------------------------- resize
+   Measure the canvas element, never the window — the window can report 0 before
+   first layout and the drawing buffer never recovers. */
+let rect = cv.getBoundingClientRect();
+function resize(){
+  const w = cv.clientWidth, h = cv.clientHeight;
+  if(!w || !h) return;
+  rect = cv.getBoundingClientRect();
+  renderer.setSize(w, h, false);
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+
+// handle for tuning the explode offsets from the console:
+//   __dh.parts.find(p=>p.key==='PIPEWORK').lift = 80
+window.__dh = {parts, camera, controls, pick, DATA, renderer, scene, sun, TEX, MEASURED,
+  probe(x,y){
+    const r = cv.getBoundingClientRect();
+    ray.setFromCamera(new THREE.Vector2(((x-r.left)/r.width)*2-1, -((y-r.top)/r.height)*2+1), camera);
+    return ray.intersectObjects(hitList, false)
+      .slice(0,5).map(h=>[meshPart.get(h.object).key, +h.distance.toFixed(1)]);
+  },
+  get e(){ return ease; },
+  // Read back what was actually rendered, so material work can be checked against
+  // the reference photo numerically instead of by eye. Median of a patch, hex out.
+  sample(x, y, r = 6){
+    tick();                                    // guarantee a fresh frame in the buffer
+    const gl = renderer.getContext();
+    const dpr = renderer.getPixelRatio();
+    const px = Math.round(x*dpr), py = Math.round(y*dpr), n = Math.max(1, Math.round(r*dpr));
+    const buf = new Uint8Array(4*n*n);
+    gl.readPixels(px - (n>>1), cv.height - py - (n>>1), n, n,
+                  gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    const ch = [[],[],[]];
+    for(let i = 0; i < n*n; i++){
+      if(buf[i*4+3] < 8) continue;             // skip background
+      for(let k = 0; k < 3; k++) ch[k].push(buf[i*4+k]);
+    }
+    if(!ch[0].length) return null;
+    const med = ch.map(a => a.sort((p,q)=>p-q)[a.length>>1]);
+    return {rgb: med, hex: '#' + med.map(v=>v.toString(16).padStart(2,'0').toUpperCase()).join('')};
+  }};
+if(window.ResizeObserver) new ResizeObserver(resize).observe(cv);
+
+// requestAnimationFrame — and with it ResizeObserver delivery — is suspended in
+// background tabs and in embedded preview panes that aren't compositing. Timers
+// still run, so this keeps sizing and rendering alive when rAF has stalled.
+setInterval(()=>{
+  if(ready && performance.now() - lastTick > 200){ resize(); tick(); }
+}, 200);
+</script>
+</body>
+</html>

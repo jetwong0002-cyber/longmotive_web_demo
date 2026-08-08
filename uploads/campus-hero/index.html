@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Data Centre Campus Build | Longmotive</title>
+<meta name="description" content="Follow a Johor data-centre campus build by Longmotive, from civil works through M&E installation and commissioning.">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#04101f;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+  .track{position:relative;height:360vh}
+  .stage{position:sticky;top:0;height:100vh;overflow:hidden}
+  video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .veil{position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(90deg,rgba(4,16,31,.93) 0%,rgba(4,16,31,.62) 30%,rgba(4,16,31,.12) 58%,transparent 76%)}
+  .veil2{position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(180deg,rgba(4,16,31,.62) 0%,transparent 22%,transparent 60%,rgba(4,16,31,.88) 100%)}
+
+  nav{position:absolute;top:0;left:0;right:0;z-index:4;display:flex;justify-content:space-between;
+    align-items:center;padding:24px clamp(20px,5vw,64px)}
+  nav .logo{color:#fff;font-weight:800;letter-spacing:.1em;font-size:15px}
+  nav .links{display:flex;gap:28px}
+  nav a{color:rgba(255,255,255,.8);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;text-decoration:none}
+  nav a:hover{color:#66D0F6}
+
+  .copy{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;justify-content:center;
+    padding:0 clamp(24px,5vw,64px);max-width:60ch}
+  .eyebrow{display:inline-flex;align-items:center;gap:11px;color:#66D0F6;font-size:11.5px;font-weight:600;
+    letter-spacing:.2em;text-transform:uppercase;margin-bottom:20px}
+  .eyebrow i{width:32px;height:2px;background:currentColor}
+  h1{color:#fff;font-size:clamp(2.1rem,5.2vw,4.4rem);line-height:1.02;font-weight:800;letter-spacing:-.022em}
+  h1 em{font-style:normal;background:linear-gradient(180deg,#3F7FC7,#66D0F6);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{color:#D6E4F5;opacity:.82;font-size:clamp(.95rem,1.5vw,1.18rem);line-height:1.62;margin-top:20px;max-width:44ch}
+  .cta{margin-top:28px;align-self:flex-start;padding:12px 32px;border-radius:999px;color:#fff;
+    font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;text-decoration:none;
+    background:linear-gradient(120deg,#0A3364,#0F52A0 55%,#00B0F0 130%);
+    box-shadow:0 12px 34px rgba(15,82,160,.34)}
+
+  .hud{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:0 clamp(24px,5vw,64px) 30px}
+  .phases{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .ph{flex:1;min-width:150px;border-top:2px solid rgba(214,228,245,.16);padding-top:10px;
+    transition:border-color .35s}
+  .ph .n{display:block;font-family:ui-monospace,monospace;font-size:10.5px;color:#D6E4F5;opacity:.34;
+    letter-spacing:.16em;transition:opacity .35s,color .35s}
+  .ph .t{display:block;margin-top:3px;font-size:12.5px;font-weight:600;letter-spacing:.1em;
+    text-transform:uppercase;color:#D6E4F5;opacity:.34;transition:opacity .35s,color .35s}
+  .ph.on{border-top-color:#00B0F0}
+  .ph.on .n,.ph.on .t{opacity:1;color:#66D0F6}
+  .bar{height:2px;background:rgba(214,228,245,.14);border-radius:2px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#0F52A0,#00B0F0)}
+
+  .perf{position:fixed;right:12px;top:12px;z-index:9;background:rgba(4,16,31,.82);color:#66D0F6;
+    font-family:ui-monospace,monospace;font-size:11px;line-height:1.6;padding:9px 12px;border-radius:8px;
+    border:1px solid rgba(102,208,246,.25);white-space:pre}
+  .after{background:#061a30;color:#D6E4F5;padding:100px clamp(24px,5vw,64px);font-size:15px;opacity:.5}
+</style>
+</head>
+<body>
+<div class="track" id="track">
+  <div class="stage">
+    <video id="v" src="campus-scrub-1600.mp4" poster="poster-1440p.jpg" muted playsinline preload="auto"></video>
+    <div class="veil"></div><div class="veil2"></div>
+
+    <nav>
+      <span class="logo">LONGMOTIVE</span>
+      <span class="links"><a href="#">About</a><a href="#">Services</a><a href="#">Projects</a><a href="#">Contact</a></span>
+    </nav>
+
+    <div class="copy">
+      <span class="eyebrow"><i></i>Mechanical &amp; Electrical Engineering</span>
+      <h1>We build the <em>data-center</em> backbone.</h1>
+      <p class="sub">CIDB G7 contractor · 20+ years · 500+ workforce — delivering MEP
+        construction across Malaysia, Indonesia and China.</p>
+      <a class="cta" href="#">View Projects</a>
+    </div>
+
+    <div class="hud">
+      <div class="phases">
+        <div class="ph" id="p0"><span class="n">01</span><span class="t">Groundworks</span></div>
+        <div class="ph" id="p1"><span class="n">02</span><span class="t">Structure</span></div>
+        <div class="ph" id="p2"><span class="n">03</span><span class="t">Live Facility</span></div>
+      </div>
+      <div class="bar"><i id="bar"></i></div>
+    </div>
+  </div>
+</div>
+<div class="after">Scroll past the hero — content continues here.</div>
+
+<div class="perf" id="perf">booting…</div>
+
+<script>
+(function(){
+  const v=document.getElementById('v'), track=document.getElementById('track');
+  const bar=document.getElementById('bar'), perf=document.getElementById('perf');
+  const phs=[0,1,2].map(i=>document.getElementById('p'+i));
+  let target=0, cur=0, lastTick=0;
+  let frames=0, fps=0, seeks=0, lastFpsT=performance.now();
+
+  const apply=p=>{ if(v.readyState>=1&&v.duration&&!v.seeking) v.currentTime=p*(v.duration-0.05); };
+
+  function tick(now){
+    lastTick=now;
+    frames++;
+    if(now-lastFpsT>=500){ fps=Math.round(frames*1000/(now-lastFpsT)); frames=0; lastFpsT=now; }
+    if(v.readyState>=1&&v.duration){
+      cur+=(target-cur)*0.18;
+      if(Math.abs(target-cur)<0.0005) cur=target;
+      apply(cur);
+    }
+    const b=v.buffered.length?(v.buffered.end(v.buffered.length-1)/(v.duration||1)*100):0;
+    perf.textContent =
+      `fps    ${String(fps).padStart(3)}\n`+
+      `scroll ${(target*100).toFixed(0).padStart(3)}%\n`+
+      `time   ${v.currentTime.toFixed(2)}s / ${(v.duration||0).toFixed(2)}s\n`+
+      `buffer ${b.toFixed(0)}%\n`+
+      `seeks  ${seeks}\n`+
+      `ready  ${v.readyState}`;
+    requestAnimationFrame(tick);
+  }
+
+  v.addEventListener('seeking',()=>seeks++);
+
+  function onScroll(){
+    const r=track.getBoundingClientRect(), range=r.height-innerHeight;
+    target = range>0 ? Math.min(1,Math.max(0,-r.top/range)) : 0;
+    bar.style.width=(target*100)+'%';
+    const idx = target<0.30 ? 0 : (target<0.62 ? 1 : 2);
+    phs.forEach((el,i)=>el.classList.toggle('on',i===idx));
+    if(performance.now()-lastTick>200){ cur=target; apply(target); }
+  }
+  addEventListener('scroll',onScroll,{passive:true});
+  addEventListener('resize',onScroll);
+  onScroll();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
