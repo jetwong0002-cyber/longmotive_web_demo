@@ -1,13 +1,3 @@
-/**
- * POST /api/contact
- * Cloudflare Pages Function for contact enquiries and optional job applications.
- *
- * Required Cloudflare Pages environment variables:
- *   RESEND_API_KEY
- *   CONTACT_TO
- *   CONTACT_FROM
- */
-
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = {
   'application/pdf': '.pdf',
